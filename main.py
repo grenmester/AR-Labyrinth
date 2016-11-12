@@ -245,7 +245,7 @@ def init():
     f.write(cropped_image)
     f.close()
     f = open("input/start_point.txt","w")
-    f.write(start_point)
+    f.write(str(start_point))
     f.close()
     np.savetxt("input/maze.txt",maze)
 
