@@ -168,7 +168,7 @@ def get_acceleration(image):
     for m,n in matches:
         if m.distance < 0.7*n.distance:
             good.append(m)
-
+    M = None
     if len(good)>MIN_MATCH_COUNT:
         src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
         dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
@@ -184,11 +184,10 @@ def get_acceleration(image):
 
         img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
 
-
-
     else:
         print "Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT)
         matchesMask = None
+        M = 0
 
     # draw_params = dict(matchColor = (0,255,0), # draw matches in green color
     #                singlePointColor = None,
@@ -222,7 +221,9 @@ def get_acceleration(image):
 
     acceleration = (math.cos(roll) * GRAVITY, math.sin(pitch) * GRAVITY)
 
-    return acceleration
+    f = open("input/acceleration.txt","w")
+    f.write(acceleration)
+    f.close()
 
 
 def init():
@@ -240,9 +241,15 @@ def init():
     end_point = convert_coord(end_point[0],end_point[1],width,height,50,50)
     print(end_point)
 
-    return (cropped_image,maze,start_point)
+    f = open("input/cropped_image.txt","w")
+    f.write(cropped_image)
+    f.close()
+    f = open("input/start_point.txt","w")
+    f.write(start_point)
+    f.close()
+    np.savetxt("input/maze.txt",maze)
 
 
 if(__name__ == "__main__"):
     init()
-    get_acceleration()
+    get_acceleration(cropped_image)
