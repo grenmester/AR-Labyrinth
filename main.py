@@ -136,7 +136,9 @@ def get_end(image):
     mask = get_mask(image,[200, 180, 150], [255, 210, 190])
     return fuzzy_mode(mask,5)
 
-def get_acceleration(image):
+def get_acceleration(image = None):
+    if(not image):
+        image = start_image
     # pitch_list = [0 for x in range(SAMPLES)]
     # roll_list = [0 for x in range(SAMPLES)]
     # p = r = 0
@@ -177,8 +179,8 @@ def get_acceleration(image):
 
         matchesMask = mask.ravel().tolist()
 
-        # print(img1.shape)
-        h,w,_ = img1.shape
+        # print(image.shape)
+        h,w,_ = image.shape
         pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
         dst = cv2.perspectiveTransform(pts,M)
 
@@ -187,7 +189,6 @@ def get_acceleration(image):
     else:
         print "Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT)
         matchesMask = None
-        M = 0
 
     # draw_params = dict(matchColor = (0,255,0), # draw matches in green color
     #                singlePointColor = None,
@@ -195,39 +196,43 @@ def get_acceleration(image):
     #                flags = 2)
     #
     #
-    # img3 = cv2.drawMatches(img1,kp1,img2,kp2,good,None,**draw_params)
+    # img3 = cv2.drawMatches(image,kp1,img2,kp2,good,None,**draw_params)
     # cv2.imshow("frame",img3)
 
     #print(M)
+    if(M.any()):
+        translation, rotation, scale, shear = getComponents(M)
 
-    translation, rotation, scale, shear = getComponents(M)
-
-    if(scale[0] > 2 or scale[0] < 0):
-        pitch = None
-    elif(scale[0]>=1):
-        pitch = math.acos(2 - scale[0]) * (180/math.pi)
-    else:
-        #toward us is positive
-        pitch = -1 * math.acos(scale[0]) * (180/math.pi)
+        if(scale[0] > 2 or scale[0] < 0):
+            pitch = None
+        elif(scale[0]>=1):
+            pitch = math.acos(2 - scale[0]) * (180/math.pi)
+        else:
+            #toward us is positive
+            pitch = -1 * math.acos(scale[0]) * (180/math.pi)
 
 
-    if(scale[1] > 2 or scale[1] < 0):
-        roll = None
-    elif(scale[1]>=1):
-        roll = math.acos(2 - scale[1]) * (180/math.pi)
-    else:
-        #toward us is positive
-        roll = -1 * math.acos(scale[1]) * (180/math.pi)
+        if(scale[1] > 2 or scale[1] < 0):
+            roll = None
+        elif(scale[1]>=1):
+            roll = math.acos(2 - scale[1]) * (180/math.pi)
+        else:
+            #toward us is positive
+            roll = -1 * math.acos(scale[1]) * (180/math.pi)
 
-    acceleration = (math.cos(roll) * GRAVITY, math.sin(pitch) * GRAVITY)
+        acceleration = (math.cos(roll) * GRAVITY, math.sin(pitch) * GRAVITY)
+        print(roll,pitch)
+        print(acceleration)
 
-    f = open("input/acceleration.txt","w")
-    f.write(acceleration)
-    f.close()
+        f = open("input/acceleration.txt","w")
+        f.write(str(acceleration))
+        f.close()
 
 
 def init():
+    global start_image
     start_image = capture_frame(cap)
+    global cropped_image
     cropped_image = crop(start_image)
     #start_image becomes cropped_image
     maze = get_maze(cropped_image)
@@ -237,13 +242,13 @@ def init():
     height,width = len(start_image),len(start_image[0])
     start_point = convert_coord(start_point[0],start_point[1],width,height,50,50)
     print(start_point)
-    end_point = get_end(start_image)
-    end_point = convert_coord(end_point[0],end_point[1],width,height,50,50)
-    print(end_point)
+    # end_point = get_end(start_image)
+    # end_point = convert_coord(end_point[0],end_point[1],width,height,50,50)
+    # print(end_point)
 
-    f = open("input/cropped_image.txt","w")
-    f.write(cropped_image)
-    f.close()
+    # f = open("input/cropped_image.txt","w")
+    # f.write(cropped_image)
+    # f.close()
     f = open("input/start_point.txt","w")
     f.write(str(start_point))
     f.close()
@@ -252,4 +257,7 @@ def init():
 
 if(__name__ == "__main__"):
     init()
-    get_acceleration(cropped_image)
+    #f = open("input/cropped_image.txt")
+    #cropped_image = exec(f.read())
+    while True:
+        get_acceleration()
