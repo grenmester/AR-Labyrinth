@@ -9,7 +9,7 @@ from panda3d.core import Material, AmbientLight, DirectionalLight
 from panda3d.core import BitMask32, Vec3, Point3, LVector3, LRotationf, Plane
 from panda3d.core import CollisionNode, CollisionBox, CollisionSphere, CollisionPlane, CollisionRay, CollisionTraverser, CollisionHandlerQueue
 from panda3d.core import WindowProperties
-import sys
+import sys, random
 import numpy as np
 
 ACCEL = 70
@@ -17,8 +17,19 @@ MAX_SPEED = 5
 MAX_SPEED_SQ = MAX_SPEED ** 2
 
 class MyApp(ShowBase):
-    def __init__(self, grid):
+    def __init__(self):
         ShowBase.__init__(self)
+
+        self.grid = np.loadtxt("input/maze.txt")
+        #grid = [[1,1,1,1,1,1],
+        #        [1,0,0,0,0,1],
+        #        [1,0,0,0,0,1],
+        #        [1,0,0,0,0,1],
+        #        [1,0,0,0,0,1],
+        #        [1,0,0,0,0,1],
+        #        [1,1,1,1,1,1]]
+        f = open("input/start_point.txt", "r")
+        self.start_pos = eval(f.read())
 
         #wp = WindowProperties()
         #wp.setFullscreen(True)
@@ -26,16 +37,15 @@ class MyApp(ShowBase):
 
         self.disableMouse()
         self.accept("escape", sys.exit)
-        self.camera.setPosHpr(start[0], start[1], 35, 0, -90, 0)
+        self.camera.setPosHpr(self.start_pos[0], self.start_pos[1], 35, 0, -90, 0)
         #self.camera.setPosHpr(0, -20, 4, 0, 0, 0)
         #self.camera.setPosHpr(25, 25, 145, 0, -90, 0)
 
         # boundary
-        self.grid = grid
         offset = 0.05
         for i in range(-1, len(self.grid)+1):
             for j in range(-1, len(self.grid[0])+1):
-                if i == -1 or j == -1 or i == len(grid) or j == len(grid[0]) or self.grid[i][j]:
+                if i == -1 or j == -1 or i == len(self.grid) or j == len(self.grid[0]) or self.grid[i][j]:
                     #box-1_-1 is not a valid name so we change it to boxa_b
                     texti = i
                     textj = j
@@ -55,7 +65,7 @@ class MyApp(ShowBase):
                     #exec("self.boxCollider" + suffix + ".show()")
 
         self.maze = loader.loadModel("models/cube")
-        self.maze.setScale(len(grid), len(grid[0]), 1)
+        self.maze.setScale(len(self.grid), len(self.grid[0]), 1)
         self.maze.reparentTo(self.render)
 
         self.walls = self.maze.attachNewNode(CollisionNode('wall_collide'))
@@ -129,7 +139,7 @@ class MyApp(ShowBase):
     def start(self):
         # The maze model also has a locator in it for where to start the ball
         # To access it we use the find command
-        startPos = Point3(start[0],start[1],2)
+        startPos = Point3(self.start_pos[0],self.start_pos[1],2)
         # Set the ball in the starting position
         self.ballRoot.setPos(startPos)
         self.ballV = LVector3(0, 0, 0)         # Initial velocity is 0
@@ -150,16 +160,24 @@ class MyApp(ShowBase):
 
         # Find the acceleration direction. First the surface normal is crossed with
         # the up vector to get a vector perpendicular to the slope
-        if base.mouseWatcherNode.hasMouse():
-            mpos = base.mouseWatcherNode.getMouse()
+        #if base.mouseWatcherNode.hasMouse():
+        #    mpos = base.mouseWatcherNode.getMouse()
 
-        #norm = colEntry.getSurfaceNormal(render)
-        norm = LVector3(mpos.getX(),mpos.getY(),1)
-        accelSide = norm.cross(LVector3.up())
+        norm = colEntry.getSurfaceNormal(render)
+        #norm = LVector3(mpos.getX(),mpos.getY(),1)
+        #accelSide = norm.cross(LVector3.up())
+        try:
+            f = open("input/acceleration.txt", "r")
+            self.accel = eval(f.read())
+        except:
+            self.accel=(0,0)
+        #accelSide = LVector3(random.randint(-1,1),random.randint(-1,1),0)
+        accelSide = LVector3(self.accel[0]/60,self.accel[1]/60,0)
         # Then that vector is crossed with the surface normal to get a vector that
         # points down the slope. By getting the acceleration in 3D like this rather
         # than in 2D, we reduce the amount of error per-frame, reducing jitter
         self.accelV = norm.cross(accelSide)
+        self.camera.setPosHpr(self.ballRoot.getX(),self.ballRoot.getY(),35, 0, -90, 0)
 
     # This function handles the collision between the ball and a wall
     def wallCollideHandler(self, colEntry):
@@ -191,7 +209,6 @@ class MyApp(ShowBase):
                     colEntry.getInteriorPoint(render))
             newPos = self.ballRoot.getPos() + disp
             self.ballRoot.setFluidPos(newPos)
-            self.camera.setPosHpr(self.ballRoot.getX(),self.ballRoot.getY(),35, 0, -90, 0)
 
     # This is the task that deals with making everything interactive
     def rollTask(self, task):
@@ -217,8 +234,8 @@ class MyApp(ShowBase):
                 self.loseGame(entry)
 
         # Read the mouse position and tilt the maze accordingly
-        if base.mouseWatcherNode.hasMouse():
-            mpos = base.mouseWatcherNode.getMouse()  # get the mouse position
+        #if base.mouseWatcherNode.hasMouse():
+            #mpos = base.mouseWatcherNode.getMouse()  # get the mouse position
             #self.maze.setP(mpos.getY() * -10)
             #self.maze.setR(mpos.getX() * 10)
             #for i in range(len(self.grid)):
@@ -248,14 +265,6 @@ class MyApp(ShowBase):
         self.ball.setQuat(prevRot * newRot)
 
         return Task.cont       # Continue the task indefinitely
-grid = np.loadtxt("OPENCVSUCKS/maze.txt")
-#grid = [[1,1,1,1,1,1],
-#        [1,0,0,0,0,1],
-#        [1,0,0,0,0,1],
-#        [1,0,0,0,0,1],
-#        [1,0,0,0,0,1],
-#        [1,0,0,0,0,1],
-#        [1,1,1,1,1,1]]
-start = (7,7)
-app = MyApp(grid)
+
+app = MyApp()
 app.run()

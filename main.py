@@ -3,12 +3,12 @@ import cv2
 import math
 
 #video camera
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 #constants
 GRAVITY = 9.8
 MIN_MATCH_COUNT = 10
-SAMPLES = 5
+SAMPLES = 10
 MAX_DELTA= 15
 
 def capture_frame(cap):
@@ -139,14 +139,15 @@ def get_end(image):
 def get_acceleration(image = None):
     if(not image):
         image = start_image
-    # pitch_list = [0 for x in range(SAMPLES)]
-    # roll_list = [0 for x in range(SAMPLES)]
-    # p = r = 0
+    pitch_list = [0 for x in range(SAMPLES)]
+    roll_list = [0 for x in range(SAMPLES)]
+    p=0
+    r=0
     # while True:
     ret2, img2 = cap.read() # comparison image
 
     cv2.imshow("Labyrinth",img2)
-
+    cv2.waitKey(1)
     # Initiate SURF detector
 
     #surf = cv2.xfeatures2d.SURF_create(5000)
@@ -206,7 +207,7 @@ def get_acceleration(image = None):
         translation, rotation, scale, shear = getComponents(M)
 
         if(scale[0] > 2 or scale[0] < 0):
-            pitch = None
+            pitch = 0
         elif(scale[0]>=1):
             pitch = math.acos(2 - scale[0]) * (180/math.pi)
         else:
@@ -215,17 +216,20 @@ def get_acceleration(image = None):
 
 
         if(scale[1] > 2 or scale[1] < 0):
-            roll = None
+            roll = 0
         elif(scale[1]>=1):
             roll = math.acos(2 - scale[1]) * (180/math.pi)
         else:
             #toward us is positive
             roll = -1 * math.acos(scale[1]) * (180/math.pi)
 
+        pitch_list[p] = pitch
+        roll_list[r] = roll
+
         try:
-            acceleration = (math.sin(pitch) * GRAVITY,math.cos(roll) * GRAVITY)
+            acceleration = (sum(roll_list)/SAMPLES ,sum(pitch_list)/SAMPLES)
         except Exception as e:
-            pass
+            acceleration = (0,0)
         print(roll,pitch)
         print(acceleration)
 
@@ -265,5 +269,6 @@ if(__name__ == "__main__"):
     #f = open("input/cropped_image.txt")
     #cropped_image = exec(f.read())
     cv2.destroyAllWindows()
+    cv2.waitKey(1)
     while True:
         get_acceleration()
