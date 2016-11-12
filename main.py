@@ -3,7 +3,7 @@ import cv2
 import math
 
 #video camera
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 #constants
 GRAVITY = 9.8
@@ -145,6 +145,8 @@ def get_acceleration(image = None):
     # while True:
     ret2, img2 = cap.read() # comparison image
 
+    cv2.imshow("Labyrinth",img2)
+
     # Initiate SURF detector
 
     #surf = cv2.xfeatures2d.SURF_create(5000)
@@ -220,7 +222,10 @@ def get_acceleration(image = None):
             #toward us is positive
             roll = -1 * math.acos(scale[1]) * (180/math.pi)
 
-        acceleration = (math.cos(roll) * GRAVITY, math.sin(pitch) * GRAVITY)
+        try:
+            acceleration = (math.sin(pitch) * GRAVITY,math.cos(roll) * GRAVITY)
+        except Exception as e:
+            pass
         print(roll,pitch)
         print(acceleration)
 
@@ -259,5 +264,6 @@ if(__name__ == "__main__"):
     init()
     #f = open("input/cropped_image.txt")
     #cropped_image = exec(f.read())
+    cv2.destroyAllWindows()
     while True:
         get_acceleration()
