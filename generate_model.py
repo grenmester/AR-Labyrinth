@@ -8,7 +8,9 @@ from direct.interval.IntervalGlobal import Sequence
 from panda3d.core import Material, AmbientLight, DirectionalLight
 from panda3d.core import BitMask32, Vec3, Point3, LVector3, LRotationf, Plane
 from panda3d.core import CollisionNode, CollisionBox, CollisionPlane, CollisionRay, CollisionTraverser, CollisionHandlerQueue
+from panda3d.core import WindowProperties
 import sys
+import numpy as np
 
 ACCEL = 70
 MAX_SPEED = 5
@@ -18,11 +20,15 @@ class MyApp(ShowBase):
     def __init__(self, grid):
         ShowBase.__init__(self)
 
+        #wp = WindowProperties()
+        #wp.setFullscreen(True)
+        #base.win.requestProperties(wp)
+
         self.disableMouse()
         self.accept("escape", sys.exit)
         camera.setPosHpr(2, 2, 45, 0, -90, 0)
-        #camera.setPosHpr(0, -20, 3, 0, 0, 0)
-
+        camera.setPosHpr(0, -20, 3, 0, 0, 0)
+        camera.setPosHpr(25, 25, 145, 0, -90, 0)
         # boundary
         self.grid = grid
         offset = 0.01
@@ -40,7 +46,7 @@ class MyApp(ShowBase):
                     exec("self.boxCollider" + suffix + ".node().setIntoCollideMask(BitMask32.bit(0))")
 
         self.maze = loader.loadModel("models/cube")
-        self.maze.setScale(6, 6, 1)
+        self.maze.setScale(len(grid), len(grid[0]), 1)
         self.maze.reparentTo(self.render)
 
         self.walls = self.maze.attachNewNode(CollisionNode('wall_collide'))
@@ -208,7 +214,7 @@ class MyApp(ShowBase):
         # Finally, we move the ball
         # Update the velocity based on acceleration
         #self.ballV += self.accelV * dt * ACCEL
-        self.ballV = LVector3(mpos.getX(),mpos.getY(),0)
+            self.ballV = LVector3(mpos.getX()*10,mpos.getY()*10,0)
         # Clamp the velocity to the maximum speed
         if self.ballV.lengthSquared() > MAX_SPEED_SQ:
             self.ballV.normalize()
@@ -226,10 +232,10 @@ class MyApp(ShowBase):
         self.ball.setQuat(prevRot * newRot)
 
         return Task.cont       # Continue the task indefinitely
-
-grid = [[1,1,1,1],
-        [1,0,0,1],
-        [1,0,0,1],
-        [1,1,1,1]]
+grid = np.loadtxt("OPENCVSUCKS/maze.txt")
+#grid = [[1,1,1,1],
+#        [1,0,0,1],
+#        [1,0,0,1],
+#        [1,1,1,1]]
 app = MyApp(grid)
 app.run()
