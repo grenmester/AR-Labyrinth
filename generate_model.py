@@ -32,10 +32,17 @@ class MyApp(ShowBase):
         # boundary
         self.grid = grid
         offset = 0.01
-        for i in range(len(self.grid)):
-            for j in range(len(self.grid[0])):
-                if self.grid[i][j]:
-                    suffix = str(i) + "_" + str(j)
+        for i in range(-1, len(self.grid)+1):
+            for j in range(-1, len(self.grid[0])+1):
+                if i == -1 or j == -1 or i == len(grid) or j == len(grid[0]) or self.grid[i][j]:
+                    #box-1_-1 is not a valid name so we change it to boxa_b
+                    texti = i
+                    textj = j
+                    if i == -1:
+                        texti = 'a'
+                    if j == -1:
+                        textj = 'b'
+                    suffix = str(texti) + "_" + str(textj)
                     # model
                     exec("self.box" + suffix + " = self.loader.loadModel('models/cube')")
                     exec("self.box" + suffix + ".reparentTo(self.render)")
