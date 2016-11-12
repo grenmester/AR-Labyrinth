@@ -136,95 +136,96 @@ def get_end(image):
     mask = get_mask(image,[200, 180, 150], [255, 210, 190])
     return fuzzy_mode(mask,5)
 
-def get_input(image):
-    pitch_list = [0 for x in range(SAMPLES)]
-    roll_list = [0 for x in range(SAMPLES)]
-    p = r = 0
-    while True:
-        ret2, img2 = cap.read() # comparison image
+def get_acceleration(image):
+    # pitch_list = [0 for x in range(SAMPLES)]
+    # roll_list = [0 for x in range(SAMPLES)]
+    # p = r = 0
+    # while True:
+    ret2, img2 = cap.read() # comparison image
 
-        # Initiate SURF detector
+    # Initiate SURF detector
 
-        #surf = cv2.xfeatures2d.SURF_create(5000)
-        #SIFT may be better
-        surf = cv2.xfeatures2d.SURF_create()
+    #surf = cv2.xfeatures2d.SURF_create(5000)
+    #SIFT may be better
+    surf = cv2.xfeatures2d.SURF_create()
 
-        # find the keypoints and descriptors with SURF
-        kp1, des1 = surf.detectAndCompute(image,None)
+    # find the keypoints and descriptors with SURF
+    kp1, des1 = surf.detectAndCompute(image,None)
 
-        kp2, des2 = surf.detectAndCompute(img2,None)
-
-
-        FLANN_INDEX_KDTREE = 0
-        index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-        search_params = dict(checks = 50)
-
-        bf = cv2.BFMatcher()
-
-        matches = bf.knnMatch(des1,des2,k=2)
-
-        # store all the good matches as per Lowe's ratio test.
-        good = []
-        for m,n in matches:
-            if m.distance < 0.7*n.distance:
-                good.append(m)
-
-        if len(good)>MIN_MATCH_COUNT:
-            src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
-            dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
-
-            M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-
-            matchesMask = mask.ravel().tolist()
-
-            # print(img1.shape)
-            h,w,_ = img1.shape
-            pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
-            dst = cv2.perspectiveTransform(pts,M)
-
-            img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
+    kp2, des2 = surf.detectAndCompute(img2,None)
 
 
+    FLANN_INDEX_KDTREE = 0
+    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+    search_params = dict(checks = 50)
 
-        else:
-            print "Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT)
-            matchesMask = None
+    bf = cv2.BFMatcher()
 
-        # draw_params = dict(matchColor = (0,255,0), # draw matches in green color
-        #                singlePointColor = None,
-        #                matchesMask = matchesMask, # draw only inliers
-        #                flags = 2)
-        #
-        #
-        # img3 = cv2.drawMatches(img1,kp1,img2,kp2,good,None,**draw_params)
-        # cv2.imshow("frame",img3)
+    matches = bf.knnMatch(des1,des2,k=2)
 
-        #print(M)
+    # store all the good matches as per Lowe's ratio test.
+    good = []
+    for m,n in matches:
+        if m.distance < 0.7*n.distance:
+            good.append(m)
 
-        translation, rotation, scale, shear = getComponents(M)
+    if len(good)>MIN_MATCH_COUNT:
+        src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+        dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 
-        if(scale[0] > 2 or scale[0] < 0):
-            pitch = None
-        elif(scale[0]>=1):
-            pitch = math.acos(2 - scale[0]) * (180/math.pi)
-        else:
-            #toward us is positive
-            pitch = -1 * math.acos(scale[0]) * (180/math.pi)
+        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
 
+        matchesMask = mask.ravel().tolist()
 
-        if(scale[1] > 2 or scale[1] < 0):
-            roll = None
-        elif(scale[1]>=1):
-            roll = math.acos(2 - scale[1]) * (180/math.pi)
-        else:
-            #toward us is positive
-            roll = -1 * math.acos(scale[1]) * (180/math.pi)
+        # print(img1.shape)
+        h,w,_ = img1.shape
+        pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
+        dst = cv2.perspectiveTransform(pts,M)
 
-        acceleration = (math.cos(roll) * GRAVITY, math.sin(pitch) * GRAVITY)
-        print(acceleration)
+        img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
 
 
-def main():
+
+    else:
+        print "Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT)
+        matchesMask = None
+
+    # draw_params = dict(matchColor = (0,255,0), # draw matches in green color
+    #                singlePointColor = None,
+    #                matchesMask = matchesMask, # draw only inliers
+    #                flags = 2)
+    #
+    #
+    # img3 = cv2.drawMatches(img1,kp1,img2,kp2,good,None,**draw_params)
+    # cv2.imshow("frame",img3)
+
+    #print(M)
+
+    translation, rotation, scale, shear = getComponents(M)
+
+    if(scale[0] > 2 or scale[0] < 0):
+        pitch = None
+    elif(scale[0]>=1):
+        pitch = math.acos(2 - scale[0]) * (180/math.pi)
+    else:
+        #toward us is positive
+        pitch = -1 * math.acos(scale[0]) * (180/math.pi)
+
+
+    if(scale[1] > 2 or scale[1] < 0):
+        roll = None
+    elif(scale[1]>=1):
+        roll = math.acos(2 - scale[1]) * (180/math.pi)
+    else:
+        #toward us is positive
+        roll = -1 * math.acos(scale[1]) * (180/math.pi)
+
+    acceleration = (math.cos(roll) * GRAVITY, math.sin(pitch) * GRAVITY)
+
+    return acceleration
+
+
+def init():
     start_image = capture_frame(cap)
     cropped_image = crop(start_image)
     #start_image becomes cropped_image
@@ -239,7 +240,9 @@ def main():
     end_point = convert_coord(end_point[0],end_point[1],width,height,50,50)
     print(end_point)
 
-    get_input(cropped_image)
+    return (cropped_image,maze,start_point)
+
 
 if(__name__ == "__main__"):
-    main()
+    init()
+    get_acceleration()
