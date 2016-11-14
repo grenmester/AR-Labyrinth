@@ -12,6 +12,9 @@ SAMPLES = 10
 MAX_DELTA= 15
 
 def capture_frame(cap):
+    '''
+    Press c to capture a still frame from the live webcam feed
+    '''
     while True:
         ret,img = cap.read()
 
@@ -21,30 +24,41 @@ def capture_frame(cap):
             return img
 
 def getComponents(normalised_homography):
-  '''((translationx, translationy), rotation, (scalex, scaley), shear)'''
-  a = normalised_homography[0,0]
-  b = normalised_homography[0,1]
-  c = normalised_homography[0,2]
-  d = normalised_homography[1,0]
-  e = normalised_homography[1,1]
-  f = normalised_homography[1,2]
+    '''
+    Denormalize homographical transform matrix into components.
+    Takes normalized linear transformation (matrix[2][2]=1) and return components
+    ((translation_x, translation_y), rotation, (scale_x, scale_y), shear)
+    '''
+    
+    a = normalised_homography[0,0]
+    b = normalised_homography[0,1]
+    c = normalised_homography[0,2]
+    d = normalised_homography[1,0]
+    e = normalised_homography[1,1]
+    f = normalised_homography[1,2]
 
-  p = math.sqrt(a*a + b*b)
-  r = (a*e - b*d)/(p)
-  q = (a*d+b*e)/(a*e - b*d)
+    p = math.sqrt(a*a + b*b)
+    r = (a*e - b*d)/(p)
+    q = (a*d+b*e)/(a*e - b*d)
 
-  translation = (c,f)
-  scale = (p,r)
-  shear = q
-  theta = math.atan2(b,a)
+    translation = (c,f)
+    scale = (p,r)
+    shear = q
+    theta = math.atan2(b,a)
 
-  return (translation, theta, scale, shear)
+    return (translation, theta, scale, shear)
 
 def crop(img):
+    '''
+    Crop an image by clicking on the top left corner and dragging down to the bottom right corner
+    '''
 
+    # TODO: Make function return cropped image without using global variable to store image from callback func
     boxes = []
     def on_mouse(event, x, y, flags, params):
 
+
+        #  TODO: Add simple logic to allow click to start from any of the four corners
         if event == cv2.EVENT_LBUTTONDOWN:
              print 'Start Mouse Position: '+str(x)+', '+str(y)
              sbox = [x, y]
@@ -75,6 +89,10 @@ def crop(img):
             return cropped_image
 
 def fuzzy_mode(coords,delta):
+    '''
+    Returns the rough position from list of coordinates provided
+    '''
+
     coords = extract_coords(coords,255)
     print(coords)
     largest_mode = 0
@@ -100,6 +118,9 @@ def extract_coords(mask,matching_color):
     return coords
 
 def average_point(mask):
+    '''
+    Returns the mean point from a set of coordinates
+    '''
     coords = extract_coords(mask,255)
     print(coords)
     sum_x = sum_y = 0
@@ -107,10 +128,13 @@ def average_point(mask):
         sum_x += coord[0]
         sum_y += coord[1]
 
-    return (sum_x/len(coords),sum_y/len(coords))
+    return (sum_x/len(coords),sum_y/len(coords))  # TODO: Check that we have more than 0 coordinates
 
 
 def get_mask(image,lower_bound,upper_bound):
+    '''
+    Returns a mask of the pixels with RGB values between the provided upper and lower bounds
+    '''
     # create NumPy arrays from the boundaries
     lower_bound = np.array(lower_bound, dtype = "uint8")
     upper_bound = np.array(upper_bound, dtype = "uint8")
@@ -121,37 +145,50 @@ def get_mask(image,lower_bound,upper_bound):
     return mask
 
 def get_maze(image):
+    '''
+    Returns a mask of the black lines found in the image
+    '''
     #between (0,0,0) and (100,100,100) is black
     mask = get_mask(image,[0,0,0],[100,100,100])
 
     return mask
 
 def get_start(image):
+    '''
+    returns the mean of the red coordinates as the start point for the ball
+    '''
     #range for red
     mask = get_mask(image,[80, 120, 200], [100, 150, 255])
     return average_point(mask)
 
 def get_end(image):
+    '''
+    returns the approximate blue region that is the end of the maze
+    Note: this is not fully functional yet
+    '''
     #range for blue
     mask = get_mask(image,[200, 180, 150], [255, 210, 190])
     return fuzzy_mode(mask,5)
 
 def get_acceleration(image = None):
+    '''
+    Calculates the rolling mean of the tilt of the paper using homography and writes the output to a file.
+    ompares the live camera feed with the static image argument.
+    '''
     if(not image):
         image = start_image
+    
     pitch_list = [0 for x in range(SAMPLES)]
     roll_list = [0 for x in range(SAMPLES)]
     p=0
     r=0
-    # while True:
+
     ret2, img2 = cap.read() # comparison image
 
     cv2.imshow("Labyrinth",img2)
     cv2.waitKey(1)
-    # Initiate SURF detector
 
-    #surf = cv2.xfeatures2d.SURF_create(5000)
-    #SIFT may be better
+    # Initiate SURF detector
     surf = cv2.xfeatures2d.SURF_create()
 
     # find the keypoints and descriptors with SURF
@@ -166,7 +203,8 @@ def get_acceleration(image = None):
 
     bf = cv2.BFMatcher()
 
-    matches = bf.knnMatch(des1,des2,k=2)
+    # Match the two sets of features
+    matches = bf.knnMatch(des1,des2,k=2) #TODO: Once the bug with FLANN matching is fixed, switch to that
 
     # store all the good matches as per Lowe's ratio test.
     good = []
@@ -180,30 +218,12 @@ def get_acceleration(image = None):
 
         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
 
-        matchesMask = mask.ravel().tolist()
-
-        # print(image.shape)
-        h,w,_ = image.shape
-        pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
-        dst = cv2.perspectiveTransform(pts,M)
-
-        img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
-
     else:
         print "Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT)
         matchesMask = None
 
-    # draw_params = dict(matchColor = (0,255,0), # draw matches in green color
-    #                singlePointColor = None,
-    #                matchesMask = matchesMask, # draw only inliers
-    #                flags = 2)
-    #
-    #
-    # img3 = cv2.drawMatches(image,kp1,img2,kp2,good,None,**draw_params)
-    # cv2.imshow("frame",img3)
-
-    #print(M)
-    if(M.any()):
+    # Use trig to extrapolate pitch and roll from changes in scale
+    if(M is not None and M.any()): # TODO: Check that this catches correctly
         translation, rotation, scale, shear = getComponents(M)
 
         if(scale[0] > 2 or scale[0] < 0):
@@ -239,36 +259,37 @@ def get_acceleration(image = None):
 
 
 def init():
+    '''
+    Takes in the initial image of the map, crops it, and finds the start point
+    Walls and start point are output as files
+    '''
     global start_image
     start_image = capture_frame(cap)
+
     global cropped_image
     cropped_image = crop(start_image)
-    #start_image becomes cropped_image
+
     maze = get_maze(cropped_image)
     cv2.imshow("maze",cropped_image)
     cv2.waitKey(0)
+
     start_point = get_start(start_image)
     height,width = len(start_image),len(start_image[0])
     start_point = convert_coord(start_point[0],start_point[1],width,height,50,50)
     print(start_point)
-    # end_point = get_end(start_image)
-    # end_point = convert_coord(end_point[0],end_point[1],width,height,50,50)
-    # print(end_point)
-
-    # f = open("input/cropped_image.txt","w")
-    # f.write(cropped_image)
-    # f.close()
+    
     f = open("input/start_point.txt","w")
     f.write(str(start_point))
     f.close()
+    
     np.savetxt("input/maze.txt",maze)
 
 
 if(__name__ == "__main__"):
     init()
-    #f = open("input/cropped_image.txt")
-    #cropped_image = exec(f.read())
+    
     cv2.destroyAllWindows()
     cv2.waitKey(1)
+    
     while True:
         get_acceleration()
