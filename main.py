@@ -247,7 +247,10 @@ def init():
     maze = get_maze(cropped_image)
     cv2.imshow("maze",cropped_image)
     cv2.waitKey(0)
-    start_point = get_start(start_image)
+    try:
+        start_point = get_start(start_image)
+    except:
+        start_point = (10,10)
     height,width = len(start_image),len(start_image[0])
     start_point = convert_coord(start_point[0],start_point[1],width,height,50,50)
     print(start_point)
