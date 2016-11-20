@@ -4,9 +4,35 @@ AR-Labyrinth was a project for the Fall 2016 5C Hackathon which won first place 
 
 AR Labyrinth is a modern take on the classic game Labyrinth. Users can draw their own maze and then scan it into the game. To provide a tactile input similar to the original game, the player can hold the physical map under a webcam and tilt it to control the virtual ball. AR Labyrinth uses OpenCV's feature detection to compute homographies that track the tilt of the map in the webcam stream, and Panda3D as a 3D physics engine to generate user created maps and run the game.
 
-## Play the Game
+## Setting up the Game
 
-Two different versions of Python are required to play this game: Python 2 and PPython. PPython can be installed from the Panda3D [website](https://www.panda3d.org/download.php). In addition, OpenCV will need to be installed in Python 2.
+The OpenCV and Panda3D modules will be required to play this game. OpenCV will need to be run in Anaconda Python 2.7 version, which can be installed [here](https://www.continuum.io/downloads). Panda3D will need to be installed by installing Panda3D's own package of Python, which can be installed [here](https://www.panda3d.org/download.php).
+
+### Setting up OpenCV
+
+Install Anaconda Python 2.7 version through the [website](https://www.continuum.io/downloads). If you had previously installed Anaconda Python 3.5 version or would like to install the newer version instead for future use, you may switch to the 2.7 version with the command
+
+```bash
+source activate python2
+```
+
+If you would like to switch back to Python 3.5, you may use the command
+
+```bash
+source deactivate
+```
+
+To install OpenCV in Anaconda, use the command
+
+```bash
+conda install -c menpo opencv3=3.1.0
+```
+
+### Setting up Panda3D
+
+Install the Panda3D SDK from the [website](https://www.panda3d.org/download.php). A version of Python 3.5 called `ppython` is installed with the SDK and will be required for the game to work.
+
+# Playing the Game
 
 Start by running the following command.
 
