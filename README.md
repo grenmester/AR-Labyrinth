@@ -40,7 +40,7 @@ Start by running the following command.
 python2 scan_maze.py
 ```
 
-A live webcam feed will show up in a new window. Position the map so it is on the screen and press `c` to capture a still frame of the map. Crop the image so that the map fills up the entire window. The live webcam feed will then return.
+A live webcam feed will show up in a new window. Position the map so it is on the screen and press `c` to capture a still frame of the map. Crop the image so that the map fills up the entire window. Press `q` to make the live webcam feed return.
 
 Then, run the following command.
 

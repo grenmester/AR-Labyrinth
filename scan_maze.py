@@ -3,7 +3,10 @@ import cv2
 import math
 
 #video camera
-cap = cv2.VideoCapture(1)
+try:
+    cap = cv2.VideoCapture(1)
+except:
+    cap = cv2.VideoCapture(0)
 
 #constants
 GRAVITY = 9.8
